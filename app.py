@@ -4,7 +4,6 @@ from google import genai
 
 app = Flask(__name__)
 
-# Lee la clave desde la variable de entorno
 API_KEY = os.environ.get("GEMINI_API_KEY")
 client = genai.Client(api_key=API_KEY) if API_KEY else None
 
@@ -13,242 +12,303 @@ HTML_TEMPLATE = """
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EdgarAI</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>EdgarAI Mobile</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
     <style>
+        :root {
+            --bg-body: #0b0f17;
+            --bg-header: rgba(18, 24, 38, 0.9);
+            --bg-card-bot: #161e2e;
+            --bg-input: #1a2333;
+            --primary: #3b82f6;
+            --primary-grad: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            --text: #f3f4f6;
+            --text-muted: #9ca3af;
+            --border: rgba(255, 255, 255, 0.08);
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
             -webkit-tap-highlight-color: transparent;
         }
 
         body {
-            background-color: #0f172a;
-            color: #f8fafc;
+            background-color: var(--bg-body);
+            color: var(--text);
             display: flex;
             flex-direction: column;
             height: 100vh;
-            height: 100dvh; /* Adaptable a barras de navegadores móviles */
+            height: 100dvh;
             overflow: hidden;
         }
 
-        /* Encabezado */
+        /* Header Móvil estilo App */
         header {
-            background: rgba(30, 41, 59, 0.8);
+            background: var(--bg-header);
             backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+            padding: 12px 16px;
+            padding-top: max(12px, env(safe-area-inset-top));
             display: flex;
             align-items: center;
             justify-content: space-between;
-            position: sticky;
-            top: 0;
             z-index: 10;
+            flex-shrink: 0;
         }
 
-        .brand {
+        .header-brand {
             display: flex;
             align-items: center;
             gap: 10px;
-            font-weight: 600;
-            font-size: 1.1rem;
-            letter-spacing: -0.3px;
         }
 
-        .avatar {
-            width: 34px;
-            height: 34px;
+        .header-avatar {
+            width: 36px;
+            height: 36px;
             background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-            border-radius: 50%;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.1rem;
-            box-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
+            color: #fff;
+            font-size: 1rem;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
         }
 
-        .status-badge {
+        .header-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #fff;
+        }
+
+        .header-status {
             display: flex;
             align-items: center;
-            gap: 6px;
-            font-size: 0.75rem;
-            color: #94a3b8;
+            gap: 5px;
+            font-size: 0.72rem;
+            color: #10b981;
         }
 
         .status-dot {
-            width: 8px;
-            height: 8px;
-            background-color: #10b981;
+            width: 6px;
+            height: 6px;
+            background: #10b981;
             border-radius: 50%;
-            box-shadow: 0 0 8px #10b981;
+            box-shadow: 0 0 6px #10b981;
         }
 
-        /* Área de Chat */
+        .btn-reset {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-reset:active {
+            transform: scale(0.9);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Área de Chat Móvil */
         #chat {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
+            padding: 16px;
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 14px;
             scroll-behavior: smooth;
         }
 
         .msg {
-            max-width: 85%;
+            max-width: 88%;
             padding: 12px 16px;
             border-radius: 18px;
             font-size: 0.95rem;
             line-height: 1.5;
             word-break: break-word;
-            animation: fadeIn 0.25s ease-out forwards;
+            animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
         }
 
         .user {
             align-self: flex-end;
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            background: var(--primary-grad);
             color: #ffffff;
             border-bottom-right-radius: 4px;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
         }
 
         .bot {
             align-self: flex-start;
-            background-color: #1e293b;
-            color: #e2e8f0;
+            background: var(--bg-card-bot);
+            color: var(--text);
             border-bottom-left-radius: 4px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border: 1px solid var(--border);
         }
 
-        /* Indicador de escritura (Typing) */
+        .bot p { margin-bottom: 8px; }
+        .bot p:last-child { margin-bottom: 0; }
+        .bot code { background: rgba(0,0,0,0.4); padding: 2px 5px; border-radius: 4px; font-family: monospace; }
+
+        /* Typing Indicator */
         .typing {
             display: none;
             align-self: flex-start;
-            background-color: #1e293b;
+            background: var(--bg-card-bot);
+            border: 1px solid var(--border);
             padding: 12px 16px;
             border-radius: 18px;
             border-bottom-left-radius: 4px;
             gap: 5px;
+            align-items: center;
         }
 
         .typing span {
-            width: 6px;
-            height: 6px;
-            background-color: #64748b;
+            width: 7px;
+            height: 7px;
+            background-color: var(--text-muted);
             border-radius: 50%;
-            animation: pulse 1.4s infinite ease-in-out both;
+            animation: blink 1.4s infinite ease-in-out both;
         }
 
         .typing span:nth-child(1) { animation-delay: -0.32s; }
         .typing span:nth-child(2) { animation-delay: -0.16s; }
 
-        @keyframes pulse {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1); }
+        @keyframes blink {
+            0%, 80%, 100% { transform: scale(0.4); opacity: 0.4; }
+            40% { transform: scale(1); opacity: 1; }
         }
 
-        /* Campo de Entrada de Texto */
-        #input-container {
-            padding: 12px 16px;
-            background: #0f172a;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        #input-area {
+        /* Barra de Entrada de Texto */
+        .input-bar {
+            background: var(--bg-header);
+            border-top: 1px solid var(--border);
+            padding: 10px 12px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom));
             display: flex;
             align-items: center;
-            background-color: #1e293b;
-            border-radius: 24px;
-            padding: 4px 6px 4px 16px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            transition: border-color 0.2s ease;
+            gap: 10px;
+            flex-shrink: 0;
         }
 
-        #input-area:focus-within {
-            border-color: #3b82f6;
+        .input-container {
+            flex: 1;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            padding: 2px 6px 2px 16px;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-container:focus-within {
+            border-color: var(--primary);
         }
 
         input {
             flex: 1;
+            background: transparent;
             border: none;
             outline: none;
-            background: transparent;
-            color: #f8fafc;
+            color: #fff;
             font-size: 0.95rem;
             padding: 10px 0;
         }
 
         input::placeholder {
-            color: #64748b;
+            color: var(--text-muted);
         }
 
-        button {
+        .btn-send {
             width: 40px;
             height: 40px;
+            background: var(--primary-grad);
             border: none;
             border-radius: 50%;
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: transform 0.15s ease, background 0.2s ease;
+            transition: transform 0.15s ease;
             flex-shrink: 0;
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
         }
 
-        button:active {
-            transform: scale(0.92);
+        .btn-send:active {
+            transform: scale(0.9);
         }
 
-        button svg {
-            width: 18px;
-            height: 18px;
-            fill: currentColor;
+        .btn-send i {
+            font-size: 0.95rem;
             margin-left: 2px;
         }
     </style>
 </head>
 <body>
+
     <header>
-        <div class="brand">
-            <div class="avatar">🤖</div>
-            <span>EdgarAI</span>
+        <div class="header-brand">
+            <div class="header-avatar">
+                <i class="fa-solid fa-robot"></i>
+            </div>
+            <div class="header-info">
+                <span class="header-title">EdgarAI</span>
+                <span class="header-status">
+                    <div class="status-dot"></div> En línea
+                </span>
+            </div>
         </div>
-        <div class="status-badge">
-            <div class="status-dot"></div>
-            <span>En línea</span>
-        </div>
+        <button class="btn-reset" onclick="limpiarChat()" title="Nuevo Chat">
+            <i class="fa-solid fa-rotate-right"></i>
+        </button>
     </header>
 
     <div id="chat">
-        <div class="msg bot">¡Hola! Soy <b>EdgarAI</b>. ¿En qué te puedo ayudar hoy?</div>
-    </div>
-
-    <div class="typing" id="typing">
-        <span></span>
-        <span></span>
-        <span></span>
-    </div>
-
-    <div id="input-container">
-        <div id="input-area">
-            <input type="text" id="msg" placeholder="Escribe un mensaje..." autocomplete="off" onkeypress="if(event.key==='Enter') enviar()">
-            <button onclick="enviar()" aria-label="Enviar">
-                <svg viewBox="0 0 24 24">
-                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-                </svg>
-            </button>
+        <div class="msg bot">
+            ¡Hola! Soy <b>EdgarAI</b>. ¿En qué te ayudo hoy?
         </div>
+    </div>
+
+    <div style="padding-left: 16px; margin-bottom: 6px;">
+        <div class="typing" id="typing">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </div>
+
+    <div class="input-bar">
+        <div class="input-container">
+            <input type="text" id="msg" placeholder="Escribe un mensaje..." autocomplete="off" onkeypress="if(event.key==='Enter') enviar()">
+        </div>
+        <button class="btn-send" onclick="enviar()">
+            <i class="fa-solid fa-paper-plane"></i>
+        </button>
     </div>
 
     <script>
@@ -260,12 +320,12 @@ HTML_TEMPLATE = """
             let chat = document.getElementById("chat");
             let typing = document.getElementById("typing");
 
-            // Mensaje del usuario
+            // Añadir mensaje del usuario
             chat.innerHTML += `<div class="msg user">${escapeHTML(texto)}</div>`;
             input.value = "";
             chat.scrollTop = chat.scrollHeight;
 
-            // Mostrar indicador de "escribiendo..."
+            // Mostrar animación de escritura
             typing.style.display = "flex";
             chat.scrollTop = chat.scrollHeight;
 
@@ -278,7 +338,9 @@ HTML_TEMPLATE = """
                 let data = await res.json();
                 
                 typing.style.display = "none";
-                chat.innerHTML += `<div class="msg bot">${formatText(data.respuesta)}</div>`;
+                
+                let htmlRespuesta = marked.parse(data.respuesta);
+                chat.innerHTML += `<div class="msg bot">${htmlRespuesta}</div>`;
             } catch (e) {
                 typing.style.display = "none";
                 chat.innerHTML += `<div class="msg bot">⚠️ Error de conexión con EdgarAI.</div>`;
@@ -286,17 +348,17 @@ HTML_TEMPLATE = """
             chat.scrollTop = chat.scrollHeight;
         }
 
+        function limpiarChat() {
+            document.getElementById("chat").innerHTML = `
+                <div class="msg bot">
+                    Chat reiniciado. ¡Hola! ¿En qué te puedo colaborar?
+                </div>`;
+        }
+
         function escapeHTML(str) {
             return str.replace(/[&<>'"]/g, 
                 tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
             );
-        }
-
-        function formatText(text) {
-            // Formato básico para saltos de línea y negritas
-            return text
-                .replace(/\n/g, "<br>")
-                .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
         }
     </script>
 </body>
